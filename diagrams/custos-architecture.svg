@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="920" viewBox="0 0 1440 920" role="img" aria-labelledby="title desc">
+  <title id="title">Custos Gateway architecture</title>
+  <desc id="desc">An agent calls the Custos gateway. The gateway validates the envelope, resolves a claim, calls the Treasury oracle, evaluates the claim, signs an allow attestation or returns a structured block, and optionally proxies the request downstream.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#475569"/></marker>
+    <marker id="allowArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#047857"/></marker>
+    <marker id="blockArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#b91c1c"/></marker>
+    <style>
+      .bg{fill:#f8fafc}.gateway{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.node{fill:#fff;stroke:#64748b;stroke-width:1.6}.external{fill:#f8fafc;stroke:#64748b;stroke-width:1.6;stroke-dasharray:6 4}.allow{fill:#ecfdf5;stroke:#059669;stroke-width:2}.block{fill:#fef2f2;stroke:#dc2626;stroke-width:2}.label{font:600 17px Arial,sans-serif;fill:#0f172a}.small{font:14px Arial,sans-serif;fill:#334155}.tiny{font:12px Arial,sans-serif;fill:#475569}.wire{fill:none;stroke:#475569;stroke-width:2;marker-end:url(#arrow)}.allowwire{fill:none;stroke:#047857;stroke-width:2.5;marker-end:url(#allowArrow)}.blockwire{fill:none;stroke:#b91c1c;stroke-width:2.5;marker-end:url(#blockArrow)}.title{font:700 28px Arial,sans-serif;fill:#0f172a}.subtitle{font:16px Arial,sans-serif;fill:#475569}.section{font:700 15px Arial,sans-serif;fill:#1d4ed8}.edge{font:12px Arial,sans-serif;fill:#334155}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="920" rx="18"/>
+  <text x="54" y="54" class="title">Custos Gateway — Runtime Architecture</text>
+  <text x="54" y="82" class="subtitle">A fail-closed attestation boundary between an autonomous agent and a tokenized-asset transaction.</text>
+
+  <rect x="42" y="160" width="185" height="105" rx="12" class="external"/>
+  <text x="134" y="201" text-anchor="middle" class="label">Agent / borrower</text>
+  <text x="134" y="227" text-anchor="middle" class="small">Intent JSON</text>
+  <text x="134" y="247" text-anchor="middle" class="tiny">POST /v1/intent</text>
+
+  <rect x="280" y="120" width="828" height="635" rx="18" class="gateway"/>
+  <text x="312" y="156" class="section">CUSTOS GATEWAY</text>
+  <text x="312" y="180" class="tiny">gateway.server • FastAPI request boundary</text>
+
+  <rect x="320" y="215" width="210" height="95" rx="10" class="node"/>
+  <text x="425" y="251" text-anchor="middle" class="label">S1. Validation</text>
+  <text x="425" y="275" text-anchor="middle" class="small">schema • expiry • skew</text>
+  <text x="425" y="294" text-anchor="middle" class="tiny">gateway.validation</text>
+
+  <rect x="600" y="215" width="210" height="95" rx="10" class="node"/>
+  <text x="705" y="251" text-anchor="middle" class="label">S2. Claim resolution</text>
+  <text x="705" y="275" text-anchor="middle" class="small">asset_id → Claim</text>
+  <text x="705" y="294" text-anchor="middle" class="tiny">claims.registry</text>
+
+  <rect x="880" y="215" width="185" height="95" rx="10" class="node"/>
+  <text x="972" y="251" text-anchor="middle" class="label">S3. Oracle</text>
+  <text x="972" y="275" text-anchor="middle" class="small">yield observation</text>
+  <text x="972" y="294" text-anchor="middle" class="tiny">oracle.treasury</text>
+
+  <rect x="425" y="410" width="260" height="115" rx="10" class="node"/>
+  <text x="555" y="449" text-anchor="middle" class="label">S4. Scoring engine</text>
+  <text x="555" y="475" text-anchor="middle" class="small">staleness • yield drift • backing</text>
+  <text x="555" y="495" text-anchor="middle" class="tiny">attest.engine.evaluate()</text>
+
+  <rect x="770" y="410" width="250" height="115" rx="10" class="node"/>
+  <text x="895" y="449" text-anchor="middle" class="label">S5. Ed25519 signing</text>
+  <text x="895" y="475" text-anchor="middle" class="small">canonical JSON payload</text>
+  <text x="895" y="495" text-anchor="middle" class="tiny">attest.signing</text>
+
+  <rect x="340" y="610" width="290" height="105" rx="10" class="allow"/>
+  <text x="485" y="647" text-anchor="middle" class="label">ALLOW</text>
+  <text x="485" y="673" text-anchor="middle" class="small">signed attestation</text>
+  <text x="485" y="694" text-anchor="middle" class="tiny">200 response / proxy eligible</text>
+
+  <rect x="755" y="610" width="290" height="105" rx="10" class="block"/>
+  <text x="900" y="647" text-anchor="middle" class="label">BLOCK</text>
+  <text x="900" y="673" text-anchor="middle" class="small">CUSTOS-Exxx error response</text>
+  <text x="900" y="694" text-anchor="middle" class="tiny">400 / 403 / 404 / 422 / 503</text>
+
+  <rect x="1170" y="205" width="220" height="115" rx="12" class="external"/>
+  <text x="1280" y="242" text-anchor="middle" class="label">U.S. Treasury feed</text>
+  <text x="1280" y="267" text-anchor="middle" class="small">daily yield curve XML</text>
+  <text x="1280" y="288" text-anchor="middle" class="tiny">home.treasury.gov</text>
+
+  <rect x="1170" y="590" width="220" height="115" rx="12" class="external"/>
+  <text x="1280" y="627" text-anchor="middle" class="label">Downstream protocol</text>
+  <text x="1280" y="652" text-anchor="middle" class="small">lender / DEX / chain</text>
+  <text x="1280" y="673" text-anchor="middle" class="tiny">optional POST forward</text>
+
+  <path d="M227 212 H320" class="wire"/><text x="245" y="198" class="edge">Intent</text>
+  <path d="M530 262 H600" class="wire"/><text x="544" y="247" class="edge">valid</text>
+  <path d="M810 262 H880" class="wire"/><text x="825" y="247" class="edge">tenor</text>
+  <path d="M972 310 V365 H555 V410" class="wire"/><text x="764" y="354" class="edge">Observation or None</text>
+  <path d="M705 310 V365 H555" class="wire"/><text x="605" y="354" class="edge">Claim or None</text>
+  <path d="M1065 262 H1170" class="wire"/><text x="1080" y="247" class="edge">GET XML</text>
+  <path d="M1170 292 H1065" class="wire"/><text x="1085" y="307" class="edge">rate record</text>
+  <path d="M685 468 H770" class="allowwire"/><text x="704" y="453" class="edge">Scores</text>
+  <path d="M895 525 V560 H485 V610" class="allowwire"/><text x="670" y="550" class="edge">ALLOW</text>
+  <path d="M555 525 V560 H900 V610" class="blockwire"/><text x="700" y="578" class="edge">BLOCK</text>
+  <path d="M340 662 H227" class="allowwire"/><text x="242" y="647" class="edge">signed response</text>
+  <path d="M755 662 H227" class="blockwire"/><text x="380" y="647" class="edge">structured denial</text>
+  <path d="M630 662 H1170" class="allowwire"/><text x="875" y="646" class="edge">POST + X-Custos-Attestation</text>
+  <path d="M1170 697 H630" class="wire"/><text x="845" y="711" class="edge">downstream result</text>
+
+  <circle cx="321" cy="792" r="7" fill="#047857"/><text x="338" y="797" class="tiny">Green path: a verifiable ALLOW is signed before any downstream call.</text>
+  <circle cx="805" cy="792" r="7" fill="#b91c1c"/><text x="822" y="797" class="tiny">Red path: any missing, stale, or implausible signal blocks the transaction.</text>
+</svg>

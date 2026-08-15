@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="990" viewBox="0 0 1440 990" role="img" aria-labelledby="title desc">
+  <title id="title">Custos Gateway request and decision flow</title>
+  <desc id="desc">A sequence diagram for an agent request through Custos: validation, claim lookup, oracle lookup, scoring, signing, optional downstream forwarding, and every terminal error category.</desc>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#475569"/></marker>
+    <marker id="green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#047857"/></marker>
+    <marker id="red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#b91c1c"/></marker>
+    <style>
+      .bg{fill:#f8fafc}.actor{fill:#fff;stroke:#64748b;stroke-width:1.5}.gateway{fill:#eff6ff;stroke:#2563eb;stroke-width:1.7}.line{stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:6 5}.wire{fill:none;stroke:#475569;stroke-width:1.8;marker-end:url(#arr)}.ok{fill:none;stroke:#047857;stroke-width:2;marker-end:url(#green)}.bad{fill:none;stroke:#b91c1c;stroke-width:2;marker-end:url(#red)}.label{font:600 15px Arial,sans-serif;fill:#0f172a}.small{font:13px Arial,sans-serif;fill:#334155}.note{fill:#fff7ed;stroke:#fb923c;stroke-width:1.2}.goodnote{fill:#ecfdf5;stroke:#059669;stroke-width:1.2}.badnote{fill:#fef2f2;stroke:#dc2626;stroke-width:1.2}.title{font:700 28px Arial,sans-serif;fill:#0f172a}.subtitle{font:16px Arial,sans-serif;fill:#475569}.edge{font:12px Arial,sans-serif;fill:#334155}.step{font:700 12px Arial,sans-serif;fill:#1d4ed8}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="990" rx="18"/>
+  <text x="48" y="52" class="title">Custos Gateway — Request, Decision, and Call Flow</text>
+  <text x="48" y="80" class="subtitle">The exact order of calls preserves deterministic error precedence and fail-closed handling.</text>
+
+  <rect x="60" y="115" width="145" height="52" rx="9" class="actor"/><text x="132" y="146" text-anchor="middle" class="label">Agent</text>
+  <rect x="285" y="115" width="165" height="52" rx="9" class="gateway"/><text x="367" y="146" text-anchor="middle" class="label">Gateway API</text>
+  <rect x="530" y="115" width="165" height="52" rx="9" class="actor"/><text x="612" y="146" text-anchor="middle" class="label">Claim registry</text>
+  <rect x="775" y="115" width="165" height="52" rx="9" class="actor"/><text x="857" y="146" text-anchor="middle" class="label">Treasury oracle</text>
+  <rect x="1020" y="115" width="165" height="52" rx="9" class="actor"/><text x="1102" y="146" text-anchor="middle" class="label">Scoring + signing</text>
+  <rect x="1265" y="115" width="135" height="52" rx="9" class="actor"/><text x="1332" y="146" text-anchor="middle" class="label">Downstream</text>
+  <path d="M132 167 V940 M367 167 V940 M612 167 V940 M857 167 V940 M1102 167 V940 M1332 167 V940" class="line"/>
+
+  <text x="70" y="218" class="step">1</text><path d="M205 212 H285" class="wire"/><text x="214" y="199" class="edge">POST /v1/intent</text>
+  <rect x="245" y="235" width="245" height="48" rx="7" class="note"/><text x="367" y="255" text-anchor="middle" class="small">Validate schema, expiry, and clock skew</text><text x="367" y="273" text-anchor="middle" class="edge">gateway.validation</text>
+  <path d="M285 305 H205" class="bad"/><text x="214" y="297" class="edge">E100 / E102 / E103</text>
+
+  <text x="70" y="360" class="step">2</text><path d="M450 354 H530" class="wire"/><text x="460" y="341" class="edge">get_claim(asset_id)</text>
+  <path d="M530 382 H450" class="wire"/><text x="464" y="399" class="edge">Claim | None</text>
+  <path d="M367 414 H205" class="bad"/><text x="215" y="431" class="edge">None → E200</text>
+
+  <text x="70" y="476" class="step">3</text><path d="M450 470 H775" class="wire"/><text x="510" y="456" class="edge">get_observation(claim.tenor)</text>
+  <rect x="732" y="490" width="250" height="48" rx="7" class="note"/><text x="857" y="510" text-anchor="middle" class="small">TTL cache → official Treasury XML if miss</text><text x="857" y="528" text-anchor="middle" class="edge">percent normalized to integer bps</text>
+  <path d="M775 558 H450" class="wire"/><text x="555" y="576" class="edge">Observation | None</text>
+
+  <text x="70" y="630" class="step">4</text><path d="M450 624 H1020" class="wire"/><text x="627" y="611" class="edge">evaluate(intent, claim, observation)</text>
+  <rect x="965" y="645" width="275" height="86" rx="7" class="actor"/><text x="1102" y="669" text-anchor="middle" class="small">Decision order</text><text x="1102" y="690" text-anchor="middle" class="edge">E300/E301 → E101 → E201 → E202</text><text x="1102" y="712" text-anchor="middle" class="edge">all pass → Scores</text>
+  <path d="M1020 750 H205" class="bad"/><text x="510" y="767" class="edge">BLOCK: structured error + HTTP 403/503</text>
+
+  <text x="70" y="820" class="step">5</text><path d="M1020 814 H450" class="ok"/><text x="658" y="801" class="edge">ALLOW: canonicalize + Ed25519 sign</text>
+  <path d="M367 844 H205" class="ok"/><text x="215" y="861" class="edge">200 signed attestation</text>
+  <path d="M450 884 H1265" class="ok"/><text x="742" y="871" class="edge">only if downstream URL: POST + X-Custos-Attestation</text>
+  <path d="M1265 914 H450" class="wire"/><text x="760" y="932" class="edge">response; connection failure maps to E400</text>
+  <rect x="64" y="948" width="1270" height="24" rx="6" class="goodnote"/><text x="699" y="965" text-anchor="middle" class="small">Security property: the downstream service is never called until validation, claim resolution, live observation, scoring, and signature creation have succeeded.</text>
+</svg>
