@@ -1,5 +1,15 @@
 # Custos demo
 
+## Interactive live demo
+
+Start the browser demo from PowerShell:
+
+```powershell
+.\demo\start_live_demo.ps1
+```
+
+Then open [http://127.0.0.1:8000/demo](http://127.0.0.1:8000/demo). The page fetches the live Treasury reference, keeps its health state refreshed, and executes real intent requests against the gateway. The **Sync live market** action aligns only the in-memory simulated claims to the just-fetched reference, so every displayed scenario remains meaningful while the market observation is real.
+
 Run the complete demonstration from the repository root:
 
 ```powershell

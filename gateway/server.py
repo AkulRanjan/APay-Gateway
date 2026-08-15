@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 
 import config
 from attest import AttestationSigner, evaluate
@@ -127,3 +129,47 @@ async def health():
         observation = None
     status = "ok" if observation else "degraded"
     return json_response({"status": status, "oracle_reachable": observation is not None, "observation": observation}, 200 if observation else 503)
+
+
+@app.post("/v1/demo/sync", response_model=None)
+async def sync_live_demo_claims():
+    """Align simulated demo claims to current market observations.
+
+    This endpoint makes the presentation deterministic *after* a live oracle
+    fetch. It never changes a chain claim or production source of truth; the
+    seeded registry is an explicitly in-memory v1 simulation.
+    """
+    observations = {}
+    for tenor in {claim.underlying_tenor for claim in registry.list_claims()}:
+        try:
+            observation = await oracle.get_observation(tenor)
+        except UnsupportedTenor:
+            failure = block("CUSTOS-E203", f"Underlying tenor {tenor} has no Treasury yield mapping.")
+            return json_response(failure, ERRORS[failure.error].status_code)
+        if observation is None:
+            failure = block("CUSTOS-E300", "Live Treasury data is unavailable; demo claims were not synchronized.")
+            return json_response(failure, ERRORS[failure.error].status_code)
+        observations[tenor] = observation
+
+    updated = []
+    for claim in registry.list_claims():
+        observed = observations[claim.underlying_tenor].observed_yield_bps
+        if claim.asset_id == "TKN-UST-3M-003":
+            # More than the 2% drift threshold, while staying plausible in bps.
+            yield_bps = max(1, observed - max(40, round(observed * 0.04)))
+        else:
+            yield_bps = observed
+        synced = registry.update_claim(claim.asset_id, claimed_yield_bps=yield_bps)
+        if synced:
+            updated.append({"asset_id": synced.asset_id, "claimed_yield_bps": synced.claimed_yield_bps})
+    return json_response({
+        "mode": "live-market-demo",
+        "notice": "Treasury observations are live; claim records remain simulated in memory.",
+        "observations": observations,
+        "updated_claims": updated,
+    })
+
+
+@app.get("/demo", include_in_schema=False)
+async def live_demo_page():
+    return FileResponse(Path(__file__).resolve().parents[1] / "demo" / "live.html")

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Custos Live Demo</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#e2e8f0;background:#08111f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#15355c,#08111f 55%);min-height:100vh}main{max-width:1120px;margin:auto;padding:42px 22px}.eyebrow{color:#7dd3fc;font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:.75rem}h1{font-size:clamp(2rem,5vw,3.8rem);margin:.3rem 0}p{color:#b8c6da;line-height:1.55}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:24px}.panel{background:#0f1b2d;border:1px solid #2a4365;border-radius:16px;padding:22px;box-shadow:0 16px 42px #0004}.live{display:flex;align-items:center;gap:10px;font-size:.9rem;color:#b8c6da}.dot{width:10px;height:10px;border-radius:50%;background:#f59e0b}.dot.ok{background:#34d399}.dot.bad{background:#fb7185}.metric{font-size:2.2rem;font-weight:700;margin:16px 0 4px}button,select{font:inherit;border-radius:9px;border:1px solid #3b82f6;padding:11px 14px}button{background:#2563eb;color:#fff;font-weight:700;cursor:pointer}button:hover{background:#3b82f6}select{background:#08111f;color:#e2e8f0;width:100%;margin:12px 0}.secondary{background:transparent;border-color:#475569;margin-left:8px}.scenarios{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px}.scenario{background:#111f34;border:1px solid #334155;border-radius:10px;padding:12px;font-size:.82rem}.scenario b{display:block;color:#fff;margin-bottom:5px}.allow{color:#6ee7b7}.block{color:#fda4af}pre{white-space:pre-wrap;overflow:auto;min-height:255px;margin:0;background:#06101e;border-radius:10px;padding:16px;color:#cbd5e1;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}small{color:#94a3b8}@media(max-width:760px){.grid{grid-template-columns:1fr}.scenarios{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Live product demo</div>
+    <h1>Verify the asset before the agent transacts.</h1>
+    <p>Custos compares a simulated tokenized-Treasury claim with a live U.S. Treasury yield observation, then returns a signed ALLOW or a machine-readable BLOCK.</p>
+    <div class="panel live"><span class="dot" id="dot"></span><span id="status">Connecting to Custos…</span><button class="secondary" onclick="synchronize()">Sync live market</button></div>
+    <div class="grid">
+      <section class="panel">
+        <div class="eyebrow">Live market reference</div>
+        <div class="metric" id="yield">—</div>
+        <small id="yieldMeta">Waiting for the Treasury oracle</small>
+        <div class="scenarios">
+          <div class="scenario"><b>Stale claim</b><span class="block">E101 · block</span></div>
+          <div class="scenario"><b>Yield drift</b><span class="block">E201 · block</span></div>
+          <div class="scenario"><b>Under-backed</b><span class="block">E202 · block</span></div>
+          <div class="scenario"><b>Healthy claim</b><span class="allow">ALLOW · signed</span></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="eyebrow">Run an attestation</div>
+        <select id="asset">
+          <option value="TKN-UST-3M-002">Stale claim — TKN-UST-3M-002</option>
+          <option value="TKN-UST-3M-003">Recent but drifted — TKN-UST-3M-003</option>
+          <option value="TKN-UST-6M-004">Under-backed — TKN-UST-6M-004</option>
+          <option value="TKN-UST-3M-001">Healthy claim — TKN-UST-3M-001</option>
+        </select>
+        <button onclick="attest()">Evaluate intent</button>
+        <small id="notice">Live market sync runs automatically on page load.</small>
+      </section>
+    </div>
+    <section class="panel" style="margin-top:18px"><div class="eyebrow">Gateway response</div><pre id="output">Click “Sync live market” to begin.</pre></section>
+  </main>
+  <script>
+    const output=document.getElementById('output'),status=document.getElementById('status'),dot=document.getElementById('dot');
+    const now=()=>new Date().toISOString();
+    function show(data){output.textContent=JSON.stringify(data,null,2)}
+    function setState(ok,message){dot.className='dot '+(ok?'ok':'bad');status.textContent=message}
+    async function synchronize(){
+      status.textContent='Fetching live Treasury yield and synchronizing demo claims…'; dot.className='dot';
+      try{const r=await fetch('/v1/demo/sync',{method:'POST'}),data=await r.json();show(data);if(!r.ok)throw new Error(data.detail||data.error);
+        const obs=data.observations['3M'];document.getElementById('yield').textContent=(obs.observed_yield_bps/100).toFixed(2)+'%';document.getElementById('yieldMeta').textContent=`${obs.tenor} Treasury yield • record ${obs.record_date} • ${obs.cache_hit?'cached':'live fetch'}`;
+        setState(true,'Live market reference synchronized. Ready to attest.');document.getElementById('notice').textContent=data.notice;
+      }catch(e){setState(false,'Live market unavailable — Custos will fail closed.');document.getElementById('notice').textContent='No demo claim was synchronized. Try again when the Treasury feed is reachable.';show({error:String(e)})}}
+    async function attest(){const t=new Date(),exp=new Date(t.getTime()+300000);const intent={envelope_version:'custos/1',agent_id:'did:web:acme.com:agents:treasury-bot',action:'borrow_against',asset_id:document.getElementById('asset').value,amount:'50000.00',currency:'USD',issued_at:t.toISOString(),expires_at:exp.toISOString()};
+      const r=await fetch('/v1/intent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(intent)});show(await r.json())}
+    synchronize();setInterval(()=>fetch('/v1/health').then(r=>r.json()).then(d=>{if(d.oracle_reachable)setState(true,'Live market reference available.');}).catch(()=>setState(false,'Live market unavailable — Custos will fail closed.')),60000);
+  </script>
+</body>
+</html>

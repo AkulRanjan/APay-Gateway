@@ -26,3 +26,12 @@ class ClaimRegistry:
 
     def list_claims(self) -> list[Claim]:
         return list(self._claims.values())
+
+    def update_claim(self, asset_id: str, **updates: object) -> Claim | None:
+        """Replace a simulated claim in memory; used only by the interactive demo sync."""
+        claim = self._claims.get(asset_id)
+        if claim is None:
+            return None
+        updated = claim.model_copy(update=updates)
+        self._claims[asset_id] = updated
+        return updated

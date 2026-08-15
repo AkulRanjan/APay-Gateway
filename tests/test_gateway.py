@@ -44,3 +44,14 @@ def test_unknown_asset_precedes_oracle_fetch(monkeypatch):
     response = TestClient(server.app).post("/v1/intent", json=payload("does-not-exist"))
     assert response.status_code == 404
     assert response.json()["error"] == "CUSTOS-E200"
+
+
+def test_live_demo_sync_aligns_simulated_claims_to_live_observation(monkeypatch):
+    monkeypatch.setattr(server, "oracle", FixedOracle())
+    response = TestClient(server.app).post("/v1/demo/sync")
+    body = response.json()
+    yields = {claim["asset_id"]: claim["claimed_yield_bps"] for claim in body["updated_claims"]}
+    assert response.status_code == 200
+    assert body["mode"] == "live-market-demo"
+    assert yields["TKN-UST-3M-001"] == 400
+    assert yields["TKN-UST-3M-003"] < 400

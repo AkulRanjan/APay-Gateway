@@ -14,6 +14,8 @@ python -m uvicorn gateway.server:app --reload
 
 Open `http://127.0.0.1:8000/docs` for the API. The oracle uses Treasury's official daily XML yield feed, has a 60-second in-process cache, a three-second timeout, and returns `CUSTOS-E300` rather than allowing an unverifiable transaction when the source cannot be reached.
 
+For the interactive live product demo, open `http://127.0.0.1:8000/demo`. It fetches the live Treasury observation, synchronizes the simulated demo claims in memory, and lets you issue attestation requests in the browser.
+
 ```powershell
 python demo/run_demo.py
 python demo/verify_attestation.py attestation.json
