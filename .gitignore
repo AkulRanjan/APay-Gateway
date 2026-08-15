@@ -3,3 +3,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 attestation.json
+demo/attestation.json
