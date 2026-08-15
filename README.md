@@ -1,6 +1,6 @@
-<<<<<<< HEAD
+
 # APay-Gateway
-=======
+
 # Custos Gateway
 
 Custos prevents an autonomous agent from transacting against a tokenized Treasury claim until the claim is cross-checked against a current U.S. Treasury yield curve observation. It is a plausibility check against market rates, not an audit of a fund's private NAV or holdings.
